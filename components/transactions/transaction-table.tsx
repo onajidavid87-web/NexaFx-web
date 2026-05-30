@@ -67,7 +67,11 @@ export function TransactionTable({ transactions, onSelectTransaction }: Transact
                                 )}>
                                     {tx.amountString}
                                 </span>
-                                <div className="text-xs text-muted-foreground font-normal">80 USD</div> {/* Hardcoded secondary currency for visual match */}
+                                {tx.toAmount != null && tx.toCurrency && (
+                                    <div className="text-xs text-muted-foreground font-normal">
+                                        {tx.toAmount.toLocaleString()} {tx.toCurrency}
+                                    </div>
+                                )}
                             </td>
                         </tr>
                     ))}
