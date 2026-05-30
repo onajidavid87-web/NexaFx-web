@@ -31,6 +31,7 @@ type DepositMethodTypes = {
 const DepositMethods: React.FC<DepositMethodTypes> = ({ toggleDeposit }) => {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [showNotification] = useState(false);
+  const [moonPayError, setMoonPayError] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const desktopModalRef = useRef<HTMLDivElement>(null);
   const mobileMethodsModalRef = useRef<HTMLDivElement>(null);
@@ -89,8 +90,10 @@ const DepositMethods: React.FC<DepositMethodTypes> = ({ toggleDeposit }) => {
       if (process.env.NODE_ENV === "development") {
         console.warn("MoonPay: NEXT_PUBLIC_MOONPAY_API_KEY is not set.");
       }
+      setMoonPayError(true);
       return;
     }
+    setMoonPayError(false);
     const url = new URL("https://buy.moonpay.com");
     url.searchParams.set("apiKey", apiKey);
     url.searchParams.set("walletAddress", walletAddress!);
@@ -196,6 +199,11 @@ const DepositMethods: React.FC<DepositMethodTypes> = ({ toggleDeposit }) => {
             <h2 className="text-lg font-medium mb-4">
               Select a Deposit Method
             </h2>
+            {moonPayError && (
+              <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-600">
+                MoonPay is currently unavailable. Please use Instant Deposit.
+              </div>
+            )}
             <div className="space-y-3">
               {depositMethods.map((method) => (
                 <MethodCard key={method.id} method={method} />
@@ -239,6 +247,11 @@ const DepositMethods: React.FC<DepositMethodTypes> = ({ toggleDeposit }) => {
                   <p className="text-sm font-medium text-muted-foreground mb-3">
                     Select a Deposit Method
                   </p>
+                  {moonPayError && (
+                    <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-600">
+                      MoonPay is currently unavailable. Please use Instant Deposit.
+                    </div>
+                  )}
                   <div className="space-y-3">
                     {depositMethods.map((method) => (
                       <MethodCard key={method.id} method={method} />
