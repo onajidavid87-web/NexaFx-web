@@ -1,16 +1,20 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const PROXY_URL = "/api/proxy";
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string>;
+  useProxy?: boolean;
 }
 
 export async function apiClient<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { params, ...fetchOptions } = options;
+  const { params, useProxy = true, ...fetchOptions } = options;
 
-  const url = `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = useProxy
+    ? `${PROXY_URL}${path.startsWith("/") ? path : `/${path}`}`
+    : `${BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 
   const searchParams = new URLSearchParams();
   if (params) {
@@ -30,7 +34,11 @@ export async function apiClient<T>(
       headers.set("Content-Type", "application/json");
     }
     if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
+      if (useProxy) {
+        headers.set("x-client-token", token);
+      } else {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
     }
     return headers;
   };
