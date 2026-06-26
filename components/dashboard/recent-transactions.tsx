@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Transaction, getTransactions } from "@/lib/api/transactions";
 import { TransactionEmptyState } from "@/components/transactions/empty-state";
+import { TransactionDetailModal } from "./transaction-detail-modal";
 export function RecentTransactions() {
   type State =
     | { status: "loading" }
@@ -21,6 +22,8 @@ export function RecentTransactions() {
 
   const [state, setState] = useState<State>({ status: "loading" });
   const [retryCount, setRetryCount] = useState(0);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,104 +93,115 @@ export function RecentTransactions() {
         ) : (
           <>
             {/* Desktop view */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Currency
-                    </th>
-                    <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
-                      Amount
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y border-border">
-                  {state.transactions.map((tx) => (
-                    <tr
-                      key={tx.id}
-                      className="hover:bg-muted/20 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b bg-muted/30">
+                      <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Currency
+                      </th>
+                      <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
+                        Amount
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y border-border">
+                    {state.transactions.map((tx) => (
+                      <tr
+                        key={tx.id}
+                        className="hover:bg-muted/20 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedTransaction(tx);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={cn(
+                                "h-8 w-8 rounded-full flex items-center justify-center",
+                                tx.type === "Deposit"
+                                  ? "bg-green-500/10 text-green-500"
+                                  : tx.type === "Withdraw"
+                                  ? "bg-red-500/10 text-red-500"
+                                  : "bg-orange-500/10 text-orange-500"
+                              )}
+                            >
+                              {tx.type === "Convert" ? (
+                                <RefreshCw className="h-4 w-4" />
+                              ) : tx.type === "Deposit" ? (
+                                <ArrowDownLeft className="h-4 w-4" />
+                              ) : (
+                                <ArrowUpRight className="h-4 w-4" />
+                              )}
+                            </div>
+                            <span className="font-medium text-foreground">
+                              {tx.type}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-foreground">
+                          {tx.currency}
+                          {tx.toCurrency && (
+                            <span className="text-muted-foreground">
+                              {" → "}
+                              {tx.toCurrency}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-muted-foreground">
+                          {tx.date}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
                             className={cn(
-                              "h-8 w-8 rounded-full flex items-center justify-center",
-                              tx.type === "Deposit"
+                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                              tx.status === "Success"
                                 ? "bg-green-500/10 text-green-500"
-                                : tx.type === "Withdraw"
-                                ? "bg-red-500/10 text-red-500"
-                                : "bg-orange-500/10 text-orange-500"
+                                : tx.status === "Pending"
+                                ? "bg-yellow-500/10 text-yellow-500"
+                                : "bg-red-500/10 text-red-500"
                             )}
                           >
-                            {tx.type === "Convert" ? (
-                              <RefreshCw className="h-4 w-4" />
-                            ) : tx.type === "Deposit" ? (
-                              <ArrowDownLeft className="h-4 w-4" />
-                            ) : (
-                              <ArrowUpRight className="h-4 w-4" />
-                            )}
-                          </div>
-                          <span className="font-medium text-foreground">
-                            {tx.type}
+                            {tx.status}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-foreground">
-                        {tx.currency}
-                        {tx.toCurrency && (
-                          <span className="text-muted-foreground">
-                            {" → "}
-                            {tx.toCurrency}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">
-                        {tx.date}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
+                        </td>
+                        <td
                           className={cn(
-                            "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                            tx.status === "Success"
-                              ? "bg-green-500/10 text-green-500"
-                              : tx.status === "Pending"
-                              ? "bg-yellow-500/10 text-yellow-500"
-                              : "bg-red-500/10 text-red-500"
+                            "px-6 py-4 text-sm font-bold text-right",
+                            tx.type === "Deposit"
+                              ? "text-green-500"
+                              : "text-foreground"
                           )}
                         >
-                          {tx.status}
-                        </span>
-                      </td>
-                      <td
-                        className={cn(
-                          "px-6 py-4 text-sm font-bold text-right",
-                          tx.type === "Deposit"
-                            ? "text-green-500"
-                            : "text-foreground"
-                        )}
-                      >
-                        {tx.amountString}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          {tx.amountString}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
             {/* Mobile view */}
             <div className="md:hidden space-y-4 p-4">
               {state.transactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between">
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between p-4 bg-card rounded-lg border border-border hover:bg-muted/20 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setSelectedTransaction(tx);
+                    setIsModalOpen(true);
+                  }}
+                >
                   <div className="flex items-center gap-4">
                     <div
                       className={cn(
@@ -234,6 +248,14 @@ export function RecentTransactions() {
           </>
         )}
       </div>
+
+      {selectedTransaction && (
+        <TransactionDetailModal
+          transaction={selectedTransaction}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
