@@ -52,6 +52,21 @@ export function resendLoginOtp(payload: { email: string }) {
   });
 }
 
+export interface TwoFactorSetup {
+  qrCodeUrl: string
+  secret: string
+  backupCodes: string[]
+}
+
+export const setup2FA = (): Promise<TwoFactorSetup> =>
+  apiClient('/auth/2fa/setup', { method: 'POST', useProxy: false })
+
+export const verify2FA = (code: string): Promise<{ backupCodes: string[] }> =>
+  apiClient('/auth/2fa/verify', { method: 'POST', useProxy: false, body: JSON.stringify({ code }) })
+
+export const disable2FA = (code: string): Promise<void> =>
+  apiClient('/auth/2fa/disable', { method: 'POST', useProxy: false, body: JSON.stringify({ code }) })
+
 export function forgotPassword(payload: { email: string }) {
   return apiClient("/auth/forgot-password", {
     method: "POST",

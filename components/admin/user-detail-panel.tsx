@@ -38,7 +38,10 @@ export function UserDetailPanel({ userId, onClose }: UserDetailPanelProps) {
   }, [userId]);
 
   useEffect(() => {
-    fetchDetails();
+    const timer = setTimeout(() => {
+      fetchDetails();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchDetails]);
 
   const handleCopy = (text: string, field: string) => {

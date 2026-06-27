@@ -92,9 +92,14 @@ export function MarketOverview() {
   };
 
   useEffect(() => {
-    fetchRates();
+    const timer = setTimeout(() => {
+      fetchRates();
+    }, 0);
     const interval = setInterval(fetchRates, 60000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, []);
 
   return (

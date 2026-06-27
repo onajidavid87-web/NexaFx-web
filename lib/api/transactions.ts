@@ -166,6 +166,41 @@ export async function getTransactionById(id: string): Promise<Transaction> {
   return mapTransaction(dto);
 }
 
+// ==================== Conversion Summary ====================
+
+export interface ConversionSummary {
+  period: string
+  fromCurrency: string
+  toCurrency: string
+  totalAmount: number
+  transactionCount: number
+}
+
+export const getConversionSummary = (transactions: Transaction[]): ConversionSummary[] => {
+  const convertTxs = transactions.filter(t => t.type === 'Convert')
+  const grouped: Record<string, ConversionSummary> = {}
+
+  convertTxs.forEach(tx => {
+    const date = new Date(tx.date)
+    const period = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    const key = `${period}-${tx.currency}-${tx.toCurrency || ''}`
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        period,
+        fromCurrency: tx.currency,
+        toCurrency: tx.toCurrency || '',
+        totalAmount: 0,
+        transactionCount: 0,
+      }
+    }
+    grouped[key].totalAmount += tx.amount
+    grouped[key].transactionCount += 1
+  })
+
+  return Object.values(grouped).sort((a, b) => a.period.localeCompare(b.period))
+}
+
 // ==================== Withdrawal ====================
 
 // Confirmed against backend src/transactions/dtos/transaction.dto.ts:

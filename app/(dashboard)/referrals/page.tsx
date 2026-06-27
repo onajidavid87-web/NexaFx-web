@@ -1,151 +1,162 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Copy, Check, Share2, Gift, UserPlus, DollarSign, Star } from "lucide-react";
-import { ReferralStats } from "@/components/dashboard/referral-stats";
-import { ReferralTable } from "@/components/dashboard/referral-table";
-
-const REFERRAL_LINK = "https://nexafx.com/ref/abc123";
-
-const shareLinks = [
-  {
-    name: "Twitter",
-    href: `https://twitter.com/intent/tweet?text=${encodeURIComponent("Join NexaFx and start trading! Use my referral link:")}&url=${encodeURIComponent(REFERRAL_LINK)}`,
-    color: "bg-[#1DA1F2] hover:bg-[#1a8cd8]",
-  },
-  {
-    name: "WhatsApp",
-    href: `https://wa.me/?text=${encodeURIComponent(`Join NexaFx and start trading! Use my referral link: ${REFERRAL_LINK}`)}`,
-    color: "bg-[#25D366] hover:bg-[#20bd5a]",
-  },
-  {
-    name: "Telegram",
-    href: `https://t.me/share/url?url=${encodeURIComponent(REFERRAL_LINK)}&text=${encodeURIComponent("Join NexaFx and start trading!")}`,
-    color: "bg-[#0088cc] hover:bg-[#0077b5]",
-  },
-];
-
-const steps = [
-  {
-    icon: UserPlus,
-    title: "Share Your Link",
-    description: "Share your unique referral link with friends and family.",
-  },
-  {
-    icon: Gift,
-    title: "They Sign Up",
-    description: "Your referrals create an account and start trading.",
-  },
-  {
-    icon: DollarSign,
-    title: "You Earn Rewards",
-    description: "Earn $50 for every active referral that completes a trade.",
-  },
-  {
-    icon: Star,
-    title: "Unlock Bonuses",
-    description: "Unlock higher rewards as you refer more users.",
-  },
-];
+import { useEffect, useState } from "react"
+import { Copy, Share2, Gift } from "lucide-react"
+import { getReferralStats, getReferralHistory, type ReferralStats, type ReferralHistoryItem } from "@/lib/api/referrals"
 
 export default function ReferralsPage() {
-  const [copied, setCopied] = useState(false);
+  const [stats, setStats] = useState<ReferralStats | null>(null)
+  const [history, setHistory] = useState<ReferralHistoryItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState<'link' | 'code' | null>(null)
 
-  const handleCopyLink = async () => {
+  useEffect(() => {
+    Promise.all([getReferralStats(), getReferralHistory()])
+      .then(([s, h]) => {
+        setStats(s)
+        setHistory(h)
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load referral data'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const copyToClipboard = async (text: string, type: 'link' | 'code') => {
     try {
-      await navigator.clipboard.writeText(REFERRAL_LINK);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // ignore
-    }
-  };
+      await navigator.clipboard.writeText(text)
+      setCopied(type)
+      setTimeout(() => setCopied(null), 2000)
+    } catch { /* ignore */ }
+  }
 
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Referrals</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Invite friends and earn rewards for every active referral.
-        </p>
-      </div>
+  const whatsappShare = () => {
+    if (!stats) return
+    window.open(`https://wa.me/?text=${encodeURIComponent(`Join me on NexaFx! Use my referral link: ${stats.referralLink}`)}`, '_blank')
+  }
 
-      <ReferralStats
-        totalReferrals={5}
-        activeReferrals={4}
-        totalEarned={200}
-      />
+  const twitterShare = () => {
+    if (!stats) return
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Join me on NexaFx! Use my referral link: ${stats.referralLink}`)}`, '_blank')
+  }
 
-      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">
-          Your Referral Link
-        </h2>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 bg-muted rounded-md px-4 py-3 text-sm text-foreground font-mono truncate">
-            {REFERRAL_LINK}
-          </div>
-          <button
-            onClick={handleCopyLink}
-            className="flex items-center gap-2 px-4 py-3 bg-[#F0BB16] hover:bg-yellow-500 rounded-md text-black font-medium transition-colors text-sm shrink-0"
-          >
-            {copied ? (
-              <Check className="size-4" />
-            ) : (
-              <Copy className="size-4" />
-            )}
-            {copied ? "Copied!" : "Copy"}
-          </button>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground flex items-center gap-1">
-            <Share2 className="size-4" /> Share on:
-          </span>
-          {shareLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${link.color}`}
-            >
-              {link.name}
-            </a>
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 bg-muted animate-pulse rounded-xl" />
           ))}
         </div>
+        <div className="h-64 bg-muted animate-pulse rounded-xl" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <p className="text-destructive text-sm">{error}</p>
+        <button onClick={() => window.location.reload()} className="text-sm underline text-muted-foreground hover:text-foreground">
+          Try again
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Gift className="h-6 w-6" />
+        <h2 className="text-2xl font-bold">Refer & Earn</h2>
       </div>
 
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">
-          Referral Rewards
-        </h2>
-        <ReferralTable />
-      </div>
-
-      <div className="rounded-xl border border-border bg-card p-6 space-y-6">
-        <h2 className="text-lg font-semibold text-foreground">
-          How It Works
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {steps.map((step, i) => {
-            const Icon = step.icon;
-            return (
-              <div key={i} className="text-center space-y-2">
-                <div className="flex items-center justify-center">
-                  <div className="h-14 w-14 rounded-full bg-[#F0BB16]/10 flex items-center justify-center">
-                    <Icon className="size-7 text-[#F0BB16]" />
-                  </div>
-                </div>
-                <h3 className="text-sm font-semibold text-foreground">
-                  {step.title}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {step.description}
-                </p>
-              </div>
-            );
-          })}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="rounded-xl border bg-card p-5">
+          <p className="text-sm text-muted-foreground">Total Referred</p>
+          <p className="text-2xl font-bold mt-1">{stats?.totalReferred ?? 0}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-5">
+          <p className="text-sm text-muted-foreground">Pending Rewards</p>
+          <p className="text-2xl font-bold mt-1">{stats?.pendingRewards ?? 0} {stats?.currency}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-5">
+          <p className="text-sm text-muted-foreground">Claimed Rewards</p>
+          <p className="text-2xl font-bold mt-1">{stats?.claimedRewards ?? 0} {stats?.currency}</p>
         </div>
       </div>
+
+      <div className="rounded-xl border bg-card p-5 space-y-4">
+        <h3 className="font-semibold">Your Referral Link</h3>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 truncate rounded-md bg-muted px-3 py-2 text-sm">{stats?.referralLink}</code>
+          <button
+            onClick={() => copyToClipboard(stats?.referralLink ?? '', 'link')}
+            className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Copy className="h-4 w-4" />
+            {copied === 'link' ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
+
+        <h3 className="font-semibold">Referral Code</h3>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 truncate rounded-md bg-muted px-3 py-2 text-sm">{stats?.referralCode}</code>
+          <button
+            onClick={() => copyToClipboard(stats?.referralCode ?? '', 'code')}
+            className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Copy className="h-4 w-4" />
+            {copied === 'code' ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3 pt-2">
+          <span className="text-sm text-muted-foreground">Share via</span>
+          <button onClick={whatsappShare} className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">
+            <Share2 className="h-4 w-4" /> WhatsApp
+          </button>
+          <button onClick={twitterShare} className="flex items-center gap-1.5 rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-black/80 dark:bg-white dark:text-black">
+            <Share2 className="h-4 w-4" /> Twitter/X
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card p-5">
+        <h3 className="font-semibold mb-4">Referral History</h3>
+        {history.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">No referrals yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="pb-3 font-medium">Email</th>
+                  <th className="pb-3 font-medium">Status</th>
+                  <th className="pb-3 font-medium">Reward</th>
+                  <th className="pb-3 font-medium">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((item) => (
+                  <tr key={item.id} className="border-b last:border-0">
+                    <td className="py-3">{item.email}</td>
+                    <td className="py-3">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                        item.status === 'Completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                      }`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="py-3">{item.reward}</td>
+                    <td className="py-3 text-muted-foreground">{new Date(item.joinedAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
-  );
+  )
 }

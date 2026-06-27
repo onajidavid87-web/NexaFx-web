@@ -171,7 +171,6 @@ const DepositMethods: React.FC<DepositMethodTypes> = ({ toggleDeposit }) => {
               <InstantModalDeposit
                 isMobile={false}
                 onClose={() => setIsQRModalOpen(false)}
-                walletAddress={walletAddress || undefined}
               />
             </div>
           </div>
@@ -296,7 +295,6 @@ const DepositMethods: React.FC<DepositMethodTypes> = ({ toggleDeposit }) => {
                 <InstantModalDeposit
                   onClose={handleCloseDepositFlow}
                   isMobile={true}
-                  walletAddress={walletAddress || undefined}
                 />
               </div>
             </div>

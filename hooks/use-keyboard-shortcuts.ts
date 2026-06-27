@@ -1,76 +1,64 @@
-"use client";
-
-import { useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef } from 'react'
 
 interface Shortcut {
-  keys: string[];
-  description: string;
-  action: () => void;
+  keys: string
+  handler: () => void
+  description: string
+  category: 'Navigation' | 'General'
 }
 
-export function useKeyboardShortcuts(
-  shortcuts: Shortcut[],
-  onToggleModal?: () => void,
-  onCloseModal?: () => void,
-) {
-  const router = useRouter();
-  const bufferRef = useRef<string[]>([]);
-  const bufferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+export function useKeyboardShortcuts(shortcuts: Shortcut[]) {
+  const bufferRef = useRef<string[]>([])
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
-  const isInputFocused = useCallback(() => {
-    const tag = document.activeElement?.tagName?.toLowerCase();
-    const role = document.activeElement?.getAttribute("role");
-    return (
-      tag === "input" ||
-      tag === "textarea" ||
-      tag === "select" ||
-      role === "textbox"
-    );
-  }, []);
+  const isFormField = (target: EventTarget | null): boolean => {
+    const el = target as HTMLElement
+    return el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.tagName === 'SELECT' || el?.isContentEditable
+  }
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (isInputFocused()) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isFormField(e.target)) return
 
-      if (e.key === "?") {
-        e.preventDefault();
-        onToggleModal?.();
-        return;
+      const key = e.key
+
+      if (key === 'Escape') {
+        const esc = shortcuts.find(s => s.keys === 'Escape')
+        esc?.handler()
+        return
       }
 
-      if (e.key === "Escape") {
-        onCloseModal?.();
-        return;
+      if (key === '?') {
+        const q = shortcuts.find(s => s.keys === '?')
+        q?.handler()
+        return
       }
 
-      if (e.key === "g" && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        bufferRef.current = ["g"];
-        if (bufferTimeoutRef.current) clearTimeout(bufferTimeoutRef.current);
-        bufferTimeoutRef.current = setTimeout(() => {
-          bufferRef.current = [];
-        }, 500);
-        return;
+      if (key.toLowerCase() === 'g') {
+        clearTimeout(timerRef.current)
+        bufferRef.current = ['g']
+        timerRef.current = setTimeout(() => {
+          bufferRef.current = []
+        }, 500)
+        return
       }
 
-      if (bufferRef.current.length === 1 && bufferRef.current[0] === "g") {
-        const combo = `g+${e.key}`;
-        const match = shortcuts.find((s) =>
-          s.keys.some((k) => k === combo),
-        );
-        if (match) {
-          e.preventDefault();
-          bufferRef.current = [];
-          if (bufferTimeoutRef.current) clearTimeout(bufferTimeoutRef.current);
-          match.action();
-          return;
+      if (bufferRef.current.length === 1 && bufferRef.current[0] === 'g') {
+        const sequenceKey = `g ${key.toLowerCase()}`
+        const shortcut = shortcuts.find(s => s.keys === sequenceKey)
+        if (shortcut) {
+          e.preventDefault()
+          shortcut.handler()
         }
-        bufferRef.current = [];
+        bufferRef.current = []
+        clearTimeout(timerRef.current)
       }
-    };
+    }
 
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [shortcuts, router, isInputFocused, onToggleModal, onCloseModal]);
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      clearTimeout(timerRef.current)
+    }
+  }, [shortcuts])
 }

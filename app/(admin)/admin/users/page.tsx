@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Search, Filter, Loader2, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { AdminUser, getAdminUsers } from '@/lib/api/admin';
 import { AdminUserTable } from '@/components/admin/AdminUserTable';
+import { BulkActionBar } from '@/components/admin/bulk-action-bar';
 import { UserDetailPanel } from '@/components/admin/UserDetailPanel';
 
 const ITEMS_PER_PAGE = 10;
@@ -19,6 +20,7 @@ export default function UsersPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -57,8 +59,29 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    loadUsers();
-  }, [currentPage, debouncedSearch]);
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchUsers]);
+
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return users;
+    
+    const query = searchQuery.toLowerCase();
+    return users.filter(user => 
+      user.email.toLowerCase().includes(query) ||
+      (user.username && user.username.toLowerCase().includes(query))
+    );
+  }, [users, searchQuery]);
+
+  // Paginate filtered users
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, currentPage]);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const startEntry = totalCount === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
@@ -241,7 +264,7 @@ export default function UsersPage() {
               users={users} 
               onUserClick={setSelectedUser}
               selectedIds={selectedIds}
-              onSelectedIdsChange={setSelectedIds}
+              onSelectionChange={setSelectedIds}
             />
           </div>
 
@@ -300,6 +323,13 @@ export default function UsersPage() {
           </div>
         </>
       )}
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedIds={selectedIds}
+        onClear={() => setSelectedIds([])}
+        onSuccess={loadUsers}
+      />
 
       {/* User Detail Panel */}
       {selectedUser && (

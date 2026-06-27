@@ -1,49 +1,52 @@
 'use client';
 
 import { AdminUser } from '@/lib/api/admin';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface AdminUserTableProps {
   users: AdminUser[];
   onUserClick: (user: AdminUser) => void;
-  selectedIds: string[];
-  onSelectedIdsChange: (ids: string[]) => void;
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
 }
 
-export function AdminUserTable({ users, onUserClick, selectedIds, onSelectedIdsChange }: AdminUserTableProps) {
-  const allSelected = users.length > 0 && selectedIds.length === users.length;
-  const someSelected = selectedIds.length > 0 && !allSelected;
+export function AdminUserTable({ users, onUserClick, selectedIds = [], onSelectionChange }: AdminUserTableProps) {
+  const allSelected = users.length > 0 && users.every(u => selectedIds.includes(u.id));
+  const someSelected = users.some(u => selectedIds.includes(u.id));
 
-  const toggleSelectAll = () => {
+  const handleSelectAll = () => {
+    if (!onSelectionChange) return;
     if (allSelected) {
-      onSelectedIdsChange([]);
+      onSelectionChange(selectedIds.filter(id => !users.find(u => u.id === id)));
     } else {
-      onSelectedIdsChange(users.map((u) => u.id));
+      const newIds = [...selectedIds, ...users.map(u => u.id).filter(id => !selectedIds.includes(id))];
+      onSelectionChange(newIds);
     }
   };
 
-  const toggleSelect = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleSelectOne = (id: string) => {
+    if (!onSelectionChange) return;
     if (selectedIds.includes(id)) {
-      onSelectedIdsChange(selectedIds.filter((sid) => sid !== id));
+      onSelectionChange(selectedIds.filter(sid => sid !== id));
     } else {
-      onSelectedIdsChange([...selectedIds, id]);
+      onSelectionChange([...selectedIds, id]);
     }
+  };
+
+  const handleRowClick = (user: AdminUser) => {
+    onUserClick(user);
   };
 
   return (
     <div className="bg-white rounded-lg overflow-x-auto w-full max-w-[100vw]">
-      <table className="w-full min-w-[800px] text-left">
+      <table className="w-full min-w-[900px] text-left">
         <thead>
           <tr className="border-b border-gray-200">
-            <th className="py-4 px-4 w-12">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = someSelected;
-                }}
-                onChange={toggleSelectAll}
-                className="w-4 h-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-400 cursor-pointer"
+            <th className="py-4 px-4 w-10">
+              <Checkbox
+                checked={allSelected || (someSelected ? "indeterminate" : false)}
+                onCheckedChange={handleSelectAll}
+                aria-label={allSelected ? "Deselect all" : "Select all"}
               />
             </th>
             <th className="text-left py-4 px-6 text-sm font-medium text-gray-600 uppercase tracking-wider">
@@ -74,35 +77,32 @@ export function AdminUserTable({ users, onUserClick, selectedIds, onSelectedIdsC
             users.map((user) => (
               <tr
                 key={user.id}
-                onClick={() => onUserClick(user)}
                 className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
               >
                 <td className="py-4 px-4" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={selectedIds.includes(user.id)}
-                    onChange={() => {}}
-                    onClick={(e) => toggleSelect(user.id, e)}
-                    className="w-4 h-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-400 cursor-pointer"
+                    onCheckedChange={() => handleSelectOne(user.id)}
+                    aria-label={`Select ${user.email}`}
                   />
                 </td>
-                <td className="py-4 px-6">
+                <td className="py-4 px-6" onClick={() => handleRowClick(user)}>
                   <div className="flex items-center gap-3">
                     <span className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                     <span className="text-sm text-gray-900">{user.email}</span>
                   </div>
                 </td>
-                <td className="py-4 px-6">
+                <td className="py-4 px-6" onClick={() => handleRowClick(user)}>
                   <span className={`text-sm ${user.firstName && user.lastName ? 'text-gray-900' : 'text-gray-400'}`}>
                     {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'No name'}
                   </span>
                 </td>
-                <td className="py-4 px-6">
+                <td className="py-4 px-6" onClick={() => handleRowClick(user)}>
                   <span className={`text-sm ${user.phone ? 'text-gray-900' : 'text-gray-400'}`}>
                     {user.phone || 'No Phone number'}
                   </span>
                 </td>
-                <td className="py-4 px-6">
+                <td className="py-4 px-6" onClick={() => handleRowClick(user)}>
                   <span className="text-sm font-semibold text-gray-900">{user.createdAt}</span>
                 </td>
               </tr>

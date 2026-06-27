@@ -1,21 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { VerificationModal } from "@/components/profile/verification-modal";
-import { getProfile } from "@/lib/api/users";
 
 export function VerificationBanner() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isVerified, setIsVerified] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    getProfile()
-      .then((profile) => setIsVerified(!!profile.isVerified))
-      .catch(() => setIsVerified(false));
-  }, []);
-
-  if (isVerified === null) return null;
-  if (isVerified) return null;
 
   return (
     <>

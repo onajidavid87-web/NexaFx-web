@@ -8,17 +8,17 @@ import { useFocusTrap } from '@/hooks/use-focus-trap';
 type InstantDepositModalType = {
   onClose: () => void;
   isMobile: boolean;
-  walletAddress?: string;
 };
 
 const InstantModalDeposit: React.FC<InstantDepositModalType> = ({
   onClose,
-  walletAddress = '',
 }) => {
   const [copied, setCopied] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
   useFocusTrap(true, onClose, modalRef);
+
+  const walletAddress = '0x5A08FcdBEA516Cf086572157791dB12CA3beF1B32';
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(walletAddress);

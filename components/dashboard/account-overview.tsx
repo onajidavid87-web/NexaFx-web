@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronDown,
   Download,
   Upload,
   Copy,
@@ -8,17 +9,11 @@ import {
   CircleDollarSign,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getBalances, type WalletBalance } from "@/lib/api/wallet";
+import { getBalances } from "@/lib/api/wallet";
 import { getProfile } from "@/lib/api/users";
-import { formatCurrency } from "@/lib/utils/format";
-import { useWebSocket } from "@/hooks/use-websocket";
-import { useAuthStore } from "@/hooks/use-auth-store";
 
-const truncateAddress = (addr: string) => {
-  if (!addr) return "";
-  if (addr.length <= 10) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-};
+const truncateAddress = (addr: string) =>
+  `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
 type AccountOverviewTypes = {
   openDeposit: boolean;
@@ -36,7 +31,8 @@ export function AccountOverview({
   const [error, setError] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState("");
   const [balance, setBalance] = useState("");
-  const [balances, setBalances] = useState<WalletBalance[]>([]);
+  const [ngnBalance, setNgnBalance] = useState("");
+  const [usdBalance, setUsdBalance] = useState("");
 
   const wsBalance = useWebSocket((s) => s.balance);
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -74,55 +70,51 @@ export function AccountOverview({
   useEffect(() => {
     let cancelled = false;
 
+    const formatCurrency = (amount: string | number | undefined, currency: string) => {
+      if (amount === undefined || amount === null || amount === "") return "";
+      const raw = typeof amount === "string" ? amount.replace(/[^0-9.-]+/g, "") : String(amount);
+      const num = Number(raw);
+      if (!Number.isFinite(num)) return String(amount);
+      try {
+        const locale = currency === "NGN" ? "en-NG" : "en-US";
+        return new Intl.NumberFormat(locale, { style: "currency", currency }).format(num as number);
+      } catch {
+        return String(amount);
+      }
+    };
+
     const fetchAccount = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        const [profile, balancesData] = await Promise.all([
-          getProfile().catch((err) => {
-            console.error("Failed to load profile", err);
-            return null;
-          }),
-          getBalances(),
-        ]);
+        const [profile, balances] = await Promise.all([getProfile(), getBalances()]);
 
         if (cancelled) return;
 
-        // Use walletAddress from balance response if available, fallback to profile
-        const balanceWithAddress = balancesData.find((b) => b.walletAddress);
-        const addr = balanceWithAddress?.walletAddress || profile?.walletAddress || "";
+        const addr = profile?.walletAddress ?? "";
         setWalletAddress(addr);
 
-        setBalances(balancesData);
-
-        if (balancesData.length > 0) {
-          const ngnBalanceItem = balancesData.find(
-            (b) => b.currency.toUpperCase() === "NGN"
-          );
-          const usdBalanceItem = balancesData.find(
-            (b) => b.currency.toUpperCase() === "USD"
-          );
-          const firstBalanceItem = balancesData[0];
-
-          let totalBalanceStr = "";
-          if (ngnBalanceItem) {
-            totalBalanceStr = formatCurrency(ngnBalanceItem.amount, "NGN");
-          } else if (usdBalanceItem) {
-            totalBalanceStr = formatCurrency(usdBalanceItem.amount, "USD");
-          } else {
-            totalBalanceStr = formatCurrency(
-              firstBalanceItem.amount,
-              firstBalanceItem.currency
-            );
-          }
-          setBalance(totalBalanceStr);
-        } else {
-          setBalance("");
+        const balanceMap: Record<string, string> = {};
+        for (const b of balances ?? []) {
+          if (!b || !b.currency) continue;
+          balanceMap[String(b.currency).toUpperCase()] = String(b.balance ?? "");
         }
+
+        const ngn = balanceMap["NGN"] ?? balanceMap["NGN"];
+        const usd = balanceMap["USD"] ?? balanceMap["USD"];
+
+        const formattedNgn = ngn ? formatCurrency(ngn, "NGN") : "";
+        const formattedUsd = usd ? formatCurrency(usd, "USD") : "";
+
+        setNgnBalance(formattedNgn);
+        setUsdBalance(formattedUsd);
+
+        // Use NGN as primary total if available, otherwise USD, otherwise blank
+        setBalance(formattedNgn || formattedUsd || "");
       } catch (err) {
         console.error("Failed to load account data", err);
-        setError("Unable to load balances — please refresh");
+        setError("Failed to load account data");
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -133,7 +125,6 @@ export function AccountOverview({
       cancelled = true;
     };
   }, []);
-
   const handleCopyAddress = async () => {
     try {
       await navigator.clipboard.writeText(walletAddress);
@@ -159,18 +150,7 @@ export function AccountOverview({
                   <div className="h-9 w-44 bg-muted rounded" />
                 </div>
               ) : error ? (
-                <div className="space-y-2.5">
-                  <p className="text-sm font-medium text-red-500">{error}</p>
-                </div>
-              ) : balances.length === 0 ? (
-                <div className="space-y-2.5">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Total balance
-                  </p>
-                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-black">
-                    No balances found
-                  </h2>
-                </div>
+                <p className="text-sm text-red-500">{error}</p>
               ) : (
                 <div className="space-y-2.5">
                   <p className="text-sm font-medium text-muted-foreground">
@@ -185,7 +165,7 @@ export function AccountOverview({
               {/* Wallet address pill — desktop only */}
               {isLoading ? (
                 <div className="hidden md:block h-9 w-36 bg-muted rounded animate-pulse" />
-              ) : !error && walletAddress ? (
+              ) : !error ? (
                 <div className="hidden md:inline-flex md:items-center gap-2 bg-muted rounded-sm border border-border px-4 py-2">
                   <p className="text-xs font-medium text-foreground">
                     {truncateAddress(walletAddress)}
@@ -230,36 +210,33 @@ export function AccountOverview({
                 <div className="rounded-sm bg-muted h-20 md:border-[0.43px] border-[#79797966]" />
                 <div className="rounded-sm bg-muted h-20 md:border-[0.43px] border-[#79797966]" />
               </div>
-            ) : error ? (
-              <p className="text-sm text-red-500 font-medium">{error}</p>
-            ) : balances.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 font-medium">
-                No balances found
-              </p>
-            ) : (
+            ) : !error ? (
               <div className="grid w-full grid-cols-1 md:grid-cols-2 gap-4">
-                {balances.map((b) => (
-                  <div
-                    key={b.currency}
-                    className="rounded-sm w-full bg-card p-2.5 md:p-4 md:border-[0.43px] border-[#79797966] shadow-[4px-4px-12px-0px-#0000001A] flex flex-col justify-between min-h-[80px]"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {b.currency.toUpperCase() === "USD" && (
-                          <CircleDollarSign className="w-5 h-5 text-foreground" />
-                        )}
-                        <p className="text-sm font-medium text-foreground">
-                          {b.currency.toUpperCase()}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-base md:text-xl font-semibold">
-                      {formatCurrency(b.amount, b.currency)}
-                    </p>
+                <div className="rounded-sm w-full bg-card p-2.5 md:p-4 md:border-[0.43px] border-[#79797966] shadow-[4px-4px-12px-0px-#0000001A] flex flex-col">
+                  <div className="flex items-center justify-between mb-2 grow">
+                    <p className="text-xl font-medium text-foreground">NGN</p>
                   </div>
-                ))}
+                  <p className="text-base md:text-xl font-semibold">
+                    {ngnBalance}
+                  </p>
+                </div>
+
+                <div className="rounded-sm w-full bg-card p-2.5 md:p-4 md:border-[0.43px] border-[#79797966] shadow-[4px-4px-12px-0px-#0000001A]">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 bg-muted p-2 rounded-md">
+                      <CircleDollarSign className="w-6 h-6 text-foreground" />
+                      <p className="text-xs font-medium text-muted-foreground">
+                        USD
+                      </p>
+                      <ChevronDown className="size-5 text-foreground" />
+                    </div>
+                  </div>
+                  <p className="text-base md:text-xl font-semibold">
+                    {usdBalance}
+                  </p>
+                </div>
               </div>
-            )}
+            ) : null}
           </>
         )}
       </div>
