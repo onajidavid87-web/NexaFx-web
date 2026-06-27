@@ -157,6 +157,40 @@ export async function updateUserKyc(id: string, status: 'Verified' | 'Unverified
     });
 }
 
+export const flagTransaction = (id: string, reason: string): Promise<void> =>
+  apiClient(`/admin/transactions/${id}/flag`, { method: 'POST', body: JSON.stringify({ reason }), headers: getAuthHeaders() });
+
+export const unflagTransaction = (id: string): Promise<void> =>
+  apiClient(`/admin/transactions/${id}/unflag`, { method: 'POST', headers: getAuthHeaders() });
+
+export interface Dispute {
+  id: string
+  userId: string
+  userEmail: string
+  transactionId: string
+  description: string
+  status: 'Open' | 'Under Review' | 'Resolved'
+  notes: DisputeNote[]
+  createdAt: string
+  resolvedAt?: string
+}
+
+export interface DisputeNote {
+  id: string
+  adminEmail: string
+  content: string
+  createdAt: string
+}
+
+export const getDisputes = (): Promise<Dispute[]> =>
+  apiClient('/admin/disputes', { headers: getAuthHeaders() });
+
+export const resolveDispute = (id: string, resolution: string): Promise<void> =>
+  apiClient(`/admin/disputes/${id}/resolve`, { method: 'POST', body: JSON.stringify({ resolution }), headers: getAuthHeaders() });
+
+export const addDisputeNote = (id: string, content: string): Promise<DisputeNote> =>
+  apiClient(`/admin/disputes/${id}/notes`, { method: 'POST', body: JSON.stringify({ content }), headers: getAuthHeaders() });
+
 export async function getAdminTransactions(query: AdminTransactionsQuery = {}): Promise<{ data: AdminTransaction[]; total: number }> {
     const params: Record<string, string> = {};
     if (query.page) params.page = String(query.page);

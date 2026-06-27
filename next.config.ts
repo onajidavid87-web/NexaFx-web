@@ -31,12 +31,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-      },
-    ],
+    domains: ["lh3.googleusercontent.com"],
+  },
+  async redirects() {
+    return [{ source: "/sign-in", destination: "/login", permanent: true }];
   },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];

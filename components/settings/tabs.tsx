@@ -1,4 +1,12 @@
 "use client";
+
+import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AccountIcon, SecurityIcon } from "../icons";
+import { ProfileTab } from "./profile-tab";
+import { Security } from "./security";
+import { DangerZone } from "./danger-zone";
+import { AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AccountIcon, SecurityIcon, IdentityIcon } from "../icons";
@@ -15,43 +23,42 @@ import { getActivityLog } from "@/lib/api/activity";
 import { Pagination } from "@/components/shared/pagination";
 
 export function TabsSettings() {
-  const [isActiveTap, setIsActiveTap] = useState<undefined | string>();
+  const [activeTab, setActiveTab] = useState<string | undefined>();
 
   return (
     <Tabs
-      defaultValue="account"
-      onValueChange={(tap) => {
-        setIsActiveTap(tap);
-      }}
+      defaultValue="profile"
+      onValueChange={(tab) => setActiveTab(tab)}
     >
       <TabsList variant="line" className="gap-1 sm:gap-2 mb-7.5 sm:mb-9">
-        <TabsTrigger value="account">
+        <TabsTrigger value="profile">
           <AccountIcon
-            color={isActiveTap === "account" ? "#000" : ""}
+            color={activeTab === "profile" ? "#000" : ""}
             className="size-3.5"
           />
-          Account Info
+          Profile
         </TabsTrigger>
         <TabsTrigger value="security">
           <SecurityIcon
-            color={isActiveTap === "security" ? "#000" : ""}
+            color={activeTab === "security" ? "#000" : ""}
             className="size-3.5"
           />
           Security
         </TabsTrigger>
-        <TabsTrigger value="notification">
-          <SecurityIcon
-            color={isActiveTap === "notification" ? "#000" : ""}
+        <TabsTrigger value="danger">
+          <AlertTriangle
             className="size-3.5"
+            color={activeTab === "danger" ? "#E90004" : undefined}
+            aria-hidden="true"
           />
-          Notification
+          Danger Zone
         </TabsTrigger>
-        <TabsTrigger value="identity">
-          <IdentityIcon
-            color={isActiveTap === "identity" ? "#000" : ""}
+        <TabsTrigger value="activity">
+          <History
+            color={isActiveTap === "activity" ? "#000" : ""}
             className="size-3.5"
           />
-          Identity Verification
+          Activity
         </TabsTrigger>
         <TabsTrigger value="activity">
           <History
@@ -62,8 +69,8 @@ export function TabsSettings() {
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="account">
-        <AccountInfo />
+      <TabsContent value="profile">
+        <ProfileTab />
       </TabsContent>
       <TabsContent value="security">
         <div className="rounded-2xl border-[#8C8C8C] border-[0.25px] bg-card">
@@ -76,28 +83,8 @@ export function TabsSettings() {
           <Security />
         </div>
       </TabsContent>
-      <TabsContent value="notification">
-        <Notification />
-      </TabsContent>
-      <TabsContent value="identity">
-        {" "}
-        {/* Identity Verification Header */}
-        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 items-start">
-          {/* Left Column: Profile Card */}
-          <div className="h-full">
-            <ProfileOverview />
-          </div>
-
-          {/* Right Column: Content Stack */}
-          <div className="space-y-6">
-            <PersonalInfo />
-            <VerificationBanner />
-          </div>
-        </div>
-        {/* Full Width FAQ Section */}
-        <div className="w-full">
-          <FAQSection />
-        </div>
+      <TabsContent value="danger">
+        <DangerZone />
       </TabsContent>
       <TabsContent value="activity">
         <ActivityContent />
