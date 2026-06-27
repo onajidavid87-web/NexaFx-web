@@ -157,6 +157,110 @@ export async function updateUserKyc(id: string, status: 'Verified' | 'Unverified
     });
 }
 
+export interface KycSubmission {
+  id: string;
+  userId: string;
+  userName: string;
+  email: string;
+  documentType: string;
+  documentUrl: string;
+  submissionDate: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+}
+
+export async function getAdminKycSubmissions(): Promise<KycSubmission[]> {
+  const response = await apiClient<any>('/admin/kyc', {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = (response?.data ?? response?.submissions ?? response?.items ?? (Array.isArray(response) ? response : [])) as any[];
+
+  return data.map((item: any) => ({
+    id: item.id ?? item._id ?? '',
+    userId: item.userId ?? item.user_id ?? '',
+    userName: item.userName ?? item.user?.name ?? item.name ?? 'Unknown',
+    email: item.email ?? item.user?.email ?? '',
+    documentType: item.documentType ?? item.document_type ?? 'Unknown',
+    documentUrl: item.documentUrl ?? item.document_url ?? '',
+    submissionDate: item.createdAt ?? item.submissionDate ?? item.submitted_at ?? new Date().toISOString(),
+    status: (item.status === 'Approved' || item.status === 'approved'
+      ? 'Approved'
+      : item.status === 'Rejected' || item.status === 'rejected'
+        ? 'Rejected'
+        : 'Pending') as 'Pending' | 'Approved' | 'Rejected',
+  }));
+}
+
+export async function updateKycStatus(id: string, status: 'Approved' | 'Rejected'): Promise<void> {
+  await apiClient<void>(`/admin/kyc/${id}`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ status }),
+  });
+}
+
+export interface IpAllowlistEntry {
+  id: string;
+  ipAddress: string;
+  label: string;
+  addedBy: string;
+  dateAdded: string;
+  isActive: boolean;
+}
+
+export async function getIpAllowlist(): Promise<IpAllowlistEntry[]> {
+  const response = await apiClient<any>('/admin/ip-allowlist', {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  const data = (response?.data ?? response?.items ?? (Array.isArray(response) ? response : [])) as any[];
+  return data.map((entry: any) => ({
+    id: entry.id ?? entry._id ?? '',
+    ipAddress: entry.ipAddress ?? entry.ip ?? '',
+    label: entry.label ?? entry.description ?? '',
+    addedBy: entry.addedBy ?? entry.createdBy ?? '',
+    dateAdded: entry.dateAdded ?? entry.createdAt
+      ? new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '',
+    isActive: entry.isActive ?? true,
+  }));
+}
+
+export async function addIpToAllowlist(data: { ipAddress: string; label: string }): Promise<IpAllowlistEntry> {
+  const response = await apiClient<any>('/admin/ip-allowlist', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  const entry = response?.data ?? response;
+  return {
+    id: entry.id ?? entry._id ?? '',
+    ipAddress: entry.ipAddress ?? entry.ip ?? '',
+    label: entry.label ?? entry.description ?? '',
+    addedBy: entry.addedBy ?? entry.createdBy ?? '',
+    dateAdded: entry.dateAdded ?? entry.createdAt
+      ? new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '',
+    isActive: entry.isActive ?? true,
+  };
+}
+
+export async function removeIpFromAllowlist(id: string): Promise<void> {
+  await apiClient<void>(`/admin/ip-allowlist/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+}
+
+export async function toggleIpRestriction(id: string, isActive: boolean): Promise<void> {
+  await apiClient<void>(`/admin/ip-allowlist/${id}/toggle`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ isActive }),
+  });
+}
+
 export async function getAdminTransactions(query: AdminTransactionsQuery = {}): Promise<{ data: AdminTransaction[]; total: number }> {
     const params: Record<string, string> = {};
     if (query.page) params.page = String(query.page);

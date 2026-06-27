@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, Loader2 } from 'lucide-react';
+import { Search, Filter, Loader2, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { AdminUser, getAdminUsers } from '@/lib/api/admin';
 import { AdminUserTable } from '@/components/admin/AdminUserTable';
 import { UserDetailPanel } from '@/components/admin/UserDetailPanel';
@@ -14,17 +14,21 @@ export default function UsersPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  
+
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   // Debounce search query
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      setCurrentPage(1); // Reset to page 1 on new search
+      setCurrentPage(1);
     }, 300);
 
     return () => {
@@ -43,6 +47,7 @@ export default function UsersPage() {
       setUsers(res.data);
       setTotalCount(res.total);
       setError(null);
+      setSelectedIds([]);
     } catch (err: any) {
       console.error('Failed to load admin users', err);
       setError(err?.message || 'Failed to fetch users. Please try again.');
@@ -70,6 +75,26 @@ export default function UsersPage() {
     setSearchQuery('');
   };
 
+  const handleBulkActivate = () => {
+    setUsers((prev) =>
+      prev.map((u) => (selectedIds.includes(u.id) ? { ...u, isActive: true } : u)),
+    );
+    setSelectedIds([]);
+  };
+
+  const handleBulkDeactivate = () => {
+    setUsers((prev) =>
+      prev.map((u) => (selectedIds.includes(u.id) ? { ...u, isActive: false } : u)),
+    );
+    setSelectedIds([]);
+  };
+
+  const handleBulkDelete = () => {
+    setUsers((prev) => prev.filter((u) => !selectedIds.includes(u.id)));
+    setSelectedIds([]);
+    setConfirmDelete(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Mobile Header */}
@@ -92,10 +117,9 @@ export default function UsersPage() {
       {/* Desktop Header */}
       <div className="hidden lg:block">
         <h1 className="text-2xl font-semibold text-gray-900 mb-6">User-list</h1>
-        
+
         {/* Top Bar */}
         <div className="flex items-center justify-between gap-4">
-          {/* Search */}
           <div className="flex-1 max-w-md relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -107,14 +131,10 @@ export default function UsersPage() {
             />
           </div>
 
-          {/* Right Side */}
           <div className="flex items-center gap-3">
-            {/* Count Badge */}
             <div className="bg-[#FFD552] text-gray-900 px-4 py-2 rounded-full text-sm font-medium">
               All {totalCount}
             </div>
-
-            {/* Filter Button */}
             <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
               <Filter className="w-4 h-4" />
               <span className="text-sm font-medium">FILTER</span>
@@ -143,6 +163,61 @@ export default function UsersPage() {
         </button>
       </div>
 
+      {/* Bulk Action Toolbar */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-gray-900 text-white rounded-lg">
+          <span className="text-sm font-medium">{selectedIds.length} selected</span>
+          <div className="flex-1" />
+          <button
+            onClick={handleBulkActivate}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-medium transition-colors"
+          >
+            <CheckCircle className="w-3.5 h-3.5" />
+            Activate Selected
+          </button>
+          <button
+            onClick={handleBulkDeactivate}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 rounded-lg text-xs font-medium transition-colors"
+          >
+            <XCircle className="w-3.5 h-3.5" />
+            Deactivate Selected
+          </button>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded-lg text-xs font-medium transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete Selected
+          </button>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setConfirmDelete(false)}>
+          <div className="bg-white rounded-xl p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Deletion</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Are you sure you want to delete {selectedIds.length} user{selectedIds.length > 1 ? 's' : ''}? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Loader / Error / Table Content */}
       {error ? (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center text-red-600">
@@ -165,6 +240,8 @@ export default function UsersPage() {
             <AdminUserTable 
               users={users} 
               onUserClick={setSelectedUser}
+              selectedIds={selectedIds}
+              onSelectedIdsChange={setSelectedIds}
             />
           </div>
 

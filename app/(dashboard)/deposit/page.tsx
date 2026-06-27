@@ -6,6 +6,7 @@ import { MoonPayButton } from "@/components/dashboard/deposit/moonpay-button";
 import { getUserProfile, type UserProfile } from "@/lib/api/users";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
 import Link from "next/link";
+import { InfoIcon } from "@/components/ui/info-icon";
 
 export default function DepositPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -74,8 +75,13 @@ export default function DepositPage() {
         Back to Home
       </Link>
 
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-2">
         Deposit
+        <InfoIcon
+          content="Processing time: typically 1-30 minutes depending on network congestion"
+          size="md"
+          side="right"
+        />
       </h1>
 
       <ErrorBoundary sectionName="Deposit - Wallet Address">
@@ -86,6 +92,15 @@ export default function DepositPage() {
           onRetry={handleRetry}
         />
       </ErrorBoundary>
+
+      <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+        <InfoIcon
+          content="Minimum deposit: $10 USD equivalent. Maximum: no limit"
+          size="sm"
+          side="right"
+        />
+        Minimum deposit may apply
+      </div>
 
       <ErrorBoundary sectionName="Deposit - MoonPay">
         <MoonPayButton
