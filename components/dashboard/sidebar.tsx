@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
+  Headphones,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebarStore } from "@/hooks/use-sidebar-store";
@@ -19,6 +20,7 @@ const menuItems = [
   { icon: ArrowUpDown, label: "Convert", href: "/convert" },
   { icon: Mail, label: "Transactions", href: "/transactions" },
   { icon: CircleUserRound, label: "Settings", href: "/settings" },
+  { icon: Headphones, label: "Help & Support", href: "/support" },
 ];
 
 interface SidebarProps {

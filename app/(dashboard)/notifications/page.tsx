@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useNotificationsStore } from "@/hooks/use-notifications-store";
 import { SwipeableNotificationItem } from "@/components/notifications";
+import { PullToRefresh } from "@/components/shared/pull-to-refresh";
 
 function NotificationSkeleton() {
   return (
@@ -39,7 +40,12 @@ export default function NotificationsPage() {
     removeNotification(id);
   };
 
+  const handleRefresh = useCallback(async () => {
+    await fetchNotifications();
+  }, [fetchNotifications]);
+
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="max-w-2xl mx-auto">
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         {isLoading ? (
@@ -77,5 +83,6 @@ export default function NotificationsPage() {
         )}
       </div>
     </div>
+    </PullToRefresh>
   );
 }

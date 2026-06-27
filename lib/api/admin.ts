@@ -201,3 +201,28 @@ export async function getAdminTransactions(query: AdminTransactionsQuery = {}): 
 
     return { data: mappedData, total };
 }
+
+export type AnnouncementType = 'info' | 'warning' | 'success' | 'error'
+
+export interface Announcement {
+    id: string
+    title: string
+    message: string
+    type: AnnouncementType
+    isActive: boolean
+    startAt: string
+    endAt: string
+    createdAt: string
+}
+
+export const getAnnouncements = (): Promise<Announcement[]> =>
+    apiClient('/admin/announcements')
+
+export const createAnnouncement = (dto: Omit<Announcement, 'id' | 'createdAt'>): Promise<Announcement> =>
+    apiClient('/admin/announcements', { method: 'POST', body: JSON.stringify(dto) })
+
+export const toggleAnnouncement = (id: string, isActive: boolean): Promise<Announcement> =>
+    apiClient(`/admin/announcements/${id}`, { method: 'PATCH', body: JSON.stringify({ isActive }) })
+
+export const deleteAnnouncement = (id: string): Promise<void> =>
+    apiClient(`/admin/announcements/${id}`, { method: 'DELETE' })
