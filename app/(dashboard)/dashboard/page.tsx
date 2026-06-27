@@ -2,6 +2,7 @@
 import { AccountOverview } from "@/components/dashboard/account-overview";
 import DepositMethods from "@/components/dashboard/deposit";
 import { MarketOverview } from "@/components/dashboard/market-overview";
+import { PortfolioChart } from "@/components/dashboard/portfolio-chart";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { WithdrawalModal } from "@/components/dashboard/withdrawal/WithdrawalModal";
 import { useWithdrawalStore } from "@/hooks/useWithdrawalStore";
@@ -49,6 +50,10 @@ export default function DashboardPage() {
 
             <div className="space-y-4 px-3 md:px-0">
               <MarketOverview />
+            </div>
+
+            <div className="px-3 md:px-0">
+              <PortfolioChart />
             </div>
 
             <RecentTransactions />

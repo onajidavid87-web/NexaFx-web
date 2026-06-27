@@ -157,6 +157,24 @@ export async function updateUserKyc(id: string, status: 'Verified' | 'Unverified
     });
 }
 
+export interface FeeConfig {
+  conversionFeePercent: number
+  withdrawalFlatFee: number
+  withdrawalFlatFeeCurrency: string
+  minimumConversionAmount: number
+  maximumConversionAmount: number
+  minimumWithdrawalAmount: number
+  maximumWithdrawalAmount: number
+  updatedAt: string
+  updatedBy: string
+}
+
+export const getFeeConfig = (): Promise<FeeConfig> =>
+  apiClient('/admin/fees')
+
+export const updateFeeConfig = (updates: Partial<FeeConfig>): Promise<FeeConfig> =>
+  apiClient('/admin/fees', { method: 'PATCH', body: JSON.stringify(updates) })
+
 export async function getAdminTransactions(query: AdminTransactionsQuery = {}): Promise<{ data: AdminTransaction[]; total: number }> {
     const params: Record<string, string> = {};
     if (query.page) params.page = String(query.page);
